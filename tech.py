@@ -1,16 +1,20 @@
-import mimetypes #attach gia to excel
 import pandas as pd
 import smtplib
 import sys
 from email.message import EmailMessage
 
-#----------------------------------------------------
-#na valw na stelnei excel
-#na pairnei eksoterika ta password
+
+try:
+    with open('password.txt', 'r') as f:
+        password = f.readline().strip()
+        f.close()
+except FileNotFoundError:
+    print('Password file not found.')
+    sys.exit()
 
 
 mymail = "ieeeihuthessaloniki@gmail.com"
-mypassword = "hgdtwuasdkjxkjpj"
+mypassword = password
 subject = "Συμμετοχή στο IEET Con 2026"
 
 
@@ -51,33 +55,13 @@ def getemail(i):
     return tech.iloc[i, 2]
 
 
-# mail sender
-def sendthemail(body1, subject1, mymail1, mail1,ieeesponsor):
+# 3. Συνάρτηση αποστολής
+def sendthemail(body1, subject1, mymail1, mail1):
     msg = EmailMessage()
     msg.set_content(body1)
     msg['Subject'] = subject1
     msg['From'] = mymail1
     msg['To'] = mail1
-
-#anagnosh arxeiou gia attach (xlsx)
-    try:
-        # anoigw arxeio se binary morfh (rb)
-        with open(ieeesponsor, 'rb') as f:
-            file_data = f.read()
-
-        # anagnosh typou arxeiou
-        ctype, _ = mimetypes.guess_type(ieeesponsor)
-        if ctype is None:
-            ctype = 'application/octet-stream'
-        
-        maintype, subtype = ctype.split('/', 1)
-
-        # Προσθήκη του αρχείου στο πακέτο του email
-        msg.add_attachment(file_data, maintype=maintype, subtype=subtype, filename=ieeesponsor)
-        print(f"📎 Το αρχείο '{ieeesponsor}' φορτώθηκε στο email.")
-
-    except FileNotFoundError:
-        print(f"⚠️ Σφάλμα: Το αρχείο '{ieeesponsor}' δεν βρέθηκε! Το email θα σταλεί χωρίς αυτό.")
 
     try:
         print("Γίνεται σύνδεση στον server...")
@@ -94,7 +78,7 @@ def sendthemail(body1, subject1, mymail1, mail1,ieeesponsor):
 def main():
     i = 0
     while True:
-        # --- ελεγχος αρχειου ---
+        # --- ΕΛΕΓΧΟΣ ΤΕΛΟΥΣ ΑΡΧΕΙΟΥ ---
         if i >= len(tech):
             print("\nΟλοκληρώθηκε η ανάγνωση όλων των γραμμών του Excel. Τέλος προγράμματος!")
             break
@@ -116,13 +100,13 @@ def main():
         if x == str("y"):
           if type == "Tech":
               body = tech_text.format(name=name)
-              sendthemail(body, subject, mymail, email,"new.xlsx")
+              sendthemail(body, name, mymail, email)
               tech.loc[i, 'Status'] = "invite sent"
               tech.to_excel("tech.xlsx", index=False)
 
           elif type == "Non-Tech Sponsor":
               body=nontech_text.format(name=name)
-              sendthemail(body, subject, mymail, email,"new.xlsx")
+              sendthemail(body, name, mymail, email)
               tech.loc[i, 'Status'] = "invite sent"
               tech.to_excel("tech.xlsx", index=False)
 
