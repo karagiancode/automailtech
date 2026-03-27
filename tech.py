@@ -1,13 +1,16 @@
+
+import mimetypes  # attach gia to excel
 import pandas as pd
 import smtplib
 import sys
 from email.message import EmailMessage
 
 
+
 try:
-    with open('password.txt', 'r') as f:
-        password = f.readline().strip()
-        f.close()
+    with open('password.txt', 'r',encoding='utf-8') as f:
+        password = f.read().strip()
+
 except FileNotFoundError:
     print('Password file not found.')
     sys.exit()
@@ -17,7 +20,6 @@ mymail = "ieeeihuthessaloniki@gmail.com"
 mypassword = password
 subject = "Συμμετοχή στο IEET Con 2026"
 
-
 # fortosh excel
 try:
     tech = pd.read_excel("tech.xlsx")
@@ -25,7 +27,7 @@ except FileNotFoundError:
     print("Σφάλμα: Το αρχείο 'tech.xlsx' δεν βρέθηκε!")
     sys.exit()
 
-#diavasma toy txt Tech
+# diavasma toy txt Tech
 try:
     with open('message.txt', 'r', encoding='utf-8') as file:
         tech_text = file.read()
@@ -33,7 +35,7 @@ except FileNotFoundError:
     print("Σφάλμα: Το αρχείο 'message.txt' δεν βρέθηκε!")
     sys.exit()
 
-#txt gia non-tech
+# txt gia non-tech
 try:
     with open('nontech.txt', 'r', encoding='utf-8') as file:
         nontech_text = file.read()
@@ -55,13 +57,34 @@ def getemail(i):
     return tech.iloc[i, 2]
 
 
-# 3. Συνάρτηση αποστολής
-def sendthemail(body1, subject1, mymail1, mail1):
+# mail sender
+def sendthemail(body1, subject1, mymail1, mail1, ieeesponsor=None):
     msg = EmailMessage()
     msg.set_content(body1)
     msg['Subject'] = subject1
     msg['From'] = mymail1
     msg['To'] = mail1
+
+    # anagnosh arxeiou gia attach (xlsx)
+    if ieeesponsor:
+        try:
+            # anoigw arxeio se binary morfh (rb)
+            with open(ieeesponsor, 'rb') as f:
+                file_data = f.read()
+
+            # anagnosh typou arxeiou
+            ctype, _ = mimetypes.guess_type(ieeesponsor)
+            if ctype is None:
+                ctype = 'application/octet-stream'
+
+            maintype, subtype = ctype.split('/', 1)
+
+            # Προσθήκη του αρχείου στο πακέτο του email
+            msg.add_attachment(file_data, maintype=maintype, subtype=subtype, filename=ieeesponsor)
+            print(f"📎 Το αρχείο '{ieeesponsor}' φορτώθηκε στο email.")
+
+        except FileNotFoundError:
+            print(f"⚠️ Σφάλμα: Το αρχείο '{ieeesponsor}' δεν βρέθηκε! Το email θα σταλεί χωρίς αυτό.")
 
     try:
         print("Γίνεται σύνδεση στον server...")
@@ -73,12 +96,10 @@ def sendthemail(body1, subject1, mymail1, mail1):
         print(f"Προέκυψε σφάλμα κατά την αποστολή: {e}")
 
 
-
-
 def main():
-    i = 0
+    i = 14
     while True:
-        # --- ΕΛΕΓΧΟΣ ΤΕΛΟΥΣ ΑΡΧΕΙΟΥ ---
+        # --- ελεγχος αρχειου ---
         if i >= len(tech):
             print("\nΟλοκληρώθηκε η ανάγνωση όλων των γραμμών του Excel. Τέλος προγράμματος!")
             break
@@ -93,26 +114,22 @@ def main():
         print("Name: ", name)
         print("Email: ", email)
 
-
-
-
-        x = input("Στλενω το μειλ? y = yes ",)
+        x = input("Στλενω το μειλ? y = yes ", )
         if x == str("y"):
-          if type == "Tech":
-              body = tech_text.format(name=name)
-              sendthemail(body, name, mymail, email)
-              tech.loc[i, 'Status'] = "invite sent"
-              tech.to_excel("tech.xlsx", index=False)
+            if type == "Tech":
+                body = tech_text.format(name=name)
+                sendthemail(body, subject, mymail, email, "ieesponsor.xlsx")
+                tech.loc[i, 'Status'] = "invite sent"
+                tech.to_excel("tech.xlsx", index=False)
 
-          elif type == "Non-Tech Sponsor":
-              body=nontech_text.format(name=name)
-              sendthemail(body, name, mymail, email)
-              tech.loc[i, 'Status'] = "invite sent"
-              tech.to_excel("tech.xlsx", index=False)
+            elif type == "Non-Tech Sponsor":
+                body = nontech_text.format(name=name)
+                sendthemail(body, subject, mymail, email)
+                tech.loc[i, 'Status'] = "invite sent"
+                tech.to_excel("tech.xlsx", index=False)
 
-          else:
-              break;
-
+            else:
+                break;
 
         # loop gia na synexisei h na kleisei
         while True:
@@ -128,6 +145,7 @@ def main():
 
             else:
                 print("You made a typo. Answer should be y or n.")
+
 
 if __name__ == "__main__":
     main()
